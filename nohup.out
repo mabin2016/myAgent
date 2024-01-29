@@ -1,0 +1,35 @@
+2024-01-24 18:27:59.835 | INFO     | metagpt.const:get_metagpt_package_root:32 - Package root set to /home/bingo/workspace/MetaGPT
+2024-01-24 18:28:00.335 | INFO     | metagpt.config:get_default_llm_provider_enum:124 - LLMProviderEnum.OPENAI Model: gpt-3.5-turbo-1106
+2024-01-24 18:28:00.337 | INFO     | metagpt.config:get_default_llm_provider_enum:126 - API: LLMProviderEnum.OPENAI
+Traceback (most recent call last):
+  File "/home/bingo/workspace/MetaGPT/job/oss_action_node.py", line 8, in <module>
+    from metagpt.actions import UserRequirement
+  File "/home/bingo/workspace/MetaGPT/metagpt/actions/__init__.py", line 10, in <module>
+    from metagpt.actions.action import Action
+  File "/home/bingo/workspace/MetaGPT/metagpt/actions/action.py", line 15, in <module>
+    from metagpt.actions.action_node import ActionNode
+  File "/home/bingo/workspace/MetaGPT/metagpt/actions/action_node.py", line 18, in <module>
+    from metagpt.llm import BaseLLM
+  File "/home/bingo/workspace/MetaGPT/metagpt/llm.py", line 12, in <module>
+    from metagpt.provider.base_llm import BaseLLM
+  File "/home/bingo/workspace/MetaGPT/metagpt/provider/__init__.py", line 14, in <module>
+    from metagpt.provider.zhipuai_api import ZhiPuAILLM
+  File "/home/bingo/workspace/MetaGPT/metagpt/provider/zhipuai_api.py", line 16, in <module>
+    from zhipuai.types.chat.chat_completion import Completion
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/zhipuai/__init__.py", line 2, in <module>
+    from ._client import ZhipuAI
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/zhipuai/_client.py", line 11, in <module>
+    from . import api_resource
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/zhipuai/api_resource/__init__.py", line 1, in <module>
+    from .chat import chat
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/zhipuai/api_resource/chat/chat.py", line 2, in <module>
+    from .completions import Completions
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/zhipuai/api_resource/chat/completions.py", line 13, in <module>
+    from ...types.chat.chat_completion_chunk import ChatCompletionChunk
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/zhipuai/types/chat/chat_completion_chunk.py", line 44, in <module>
+    class CompletionUsage(BaseModel):
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/pydantic/_internal/_model_construction.py", line 92, in __new__
+    private_attributes = inspect_namespace(
+  File "/home/bingo/miniconda3/envs/metaGPT/lib/python3.10/site-packages/pydantic/_internal/_model_construction.py", line 345, in inspect_namespace
+    elif isinstance(value, FieldInfo) and not is_valid_field_name(var_name):
+KeyboardInterrupt
