@@ -63,16 +63,16 @@ async def generate_document(msg: str = ""):
 
 @app.get("/nora_keyword")
 async def nora_keyword(msg: str = ""):
-    asyncio.gather(_nora_keyword.run())
+    asyncio.gather(_nora_keyword.run(msg))
     return "已执行，稍后请查看您的微信消息"
 
 @app.get("/nora_oss")
 async def nora_oss(msg: str = ""):
     asyncio.gather(_nora_oss.run(msg))
-    return "已执行，稍后请查看您的微信消息"
+    return "已执行，需要几分钟，稍后请查看您的微信消息"
 
 @app.get("/nora_travel")
-async def travel_dest(msg: str = ""):
+async def nora_travel(msg: str = ""):
     return "旅游胜地介绍接口"
 
 

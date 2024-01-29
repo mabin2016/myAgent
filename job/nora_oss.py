@@ -396,10 +396,10 @@ class SendWein(Action):
 
         if not msg:
             msg = "暂无消息"
-        # print(msg)
+
         logger.info(f"send weixinmsg: {msg}")
-        user_msg = parse_user_msg(memory.messages[-1].content)
-        user_requirement = ast.literal_eval(user_msg)
+        # user_msg = parse_user_msg(memory.messages[-1].content)
+        # user_requirement = ast.literal_eval(user_msg)
         summary = f"""爬取的网站地址:{urls[0]}"""
         await wxpusher_callback(msg, summary=summary)
         return Message()
