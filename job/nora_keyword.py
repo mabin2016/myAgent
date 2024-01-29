@@ -1,39 +1,37 @@
 import asyncio
 import os
 import time
-from typing import Any, AsyncGenerator, Awaitable, Callable, Optional
+from typing import Any, AsyncGenerator, Awaitable, Callable, Optional, List
 
 import aiohttp
 import datetime
 import re
-import ast
 import json
 from metagpt.actions.action import Action
 from metagpt.roles import Role
 from metagpt.logs import logger
 from job.utils.util import wxpusher_callback
 from metagpt.schema import Message
+from metagpt.config import CONFIG
 
-
-tophub_today_token = "1b29fbc5a669bdcaa50201bedbcfa614"
-
+weixin_uids: List[str] = []
 
 class CrawlOSSRanking(Action):
    
-   query: str = ""
+    query: str = ""
 
-   async def run(self, query: str = ""):
-        res = await self.detect_entity(query)
-        word = res["words"][0]
-        data = await self.crawl_api(word, res["num"])
-        res = await context2markdown(data)
-        await wxpusher_callback(res, summary=f"您订阅的关键词是: {word}", content_type=2)
+    async def run(self, query: str = ""):
+        entitys = await self.detect_entity(query)
+        word = entitys["words"][0]
+        data = await self.crawl_api(word, entitys["num"])
+        res = self.context2markdown(data)
+        await wxpusher_callback(res, summary=f"您订阅的关键词是: {word}")
         return Message(res)
-       
-   async def crawl_api(self, word: str = "", num: int = 10):
+        
+    async def crawl_api(self, word: str = "", num: int = 10):
         url = f"https://api.tophubdata.com/search?q={word}"
         async with aiohttp.ClientSession() as client:
-            headers = {"Authorization": tophub_today_token}
+            headers = {"Authorization": CONFIG.TOPHUB_TODAY_TOKEN}
             async with client.get(url, headers=headers) as response:
                 response.raise_for_status()
                 resp = await response.json()
@@ -42,12 +40,12 @@ class CrawlOSSRanking(Action):
             data[i]["time"] = datetime.datetime.utcfromtimestamp(item['time']).strftime('%Y-%m-%d %H:%M:%S')
         return data
    
-   async def detect_entity(self, query):
+    async def detect_entity(self, query):
         json_example = '{"words": ["实体1", "实体2"], "num": 数字, "time": [crontab类型时间点1, crontab时间点2]}'
         json_text1 = '{"words": ["GPT"], "num", "time": ["30 18 * * *"]}'
         json_text2 = '{"words": ["巴以冲突", "朝鲜半岛"], "num", "time": ["* */1 * * *", "30 19 * * *"]}'
         prompt = """
-    你是一个命名实体识别模型，用户输入自然语言，你从中提取出命名实体并将结果以json的形式返回，在返回结果时，我会保持准确性和简洁性，同时遵循用户指定的json格式：```json {json_example}```，
+    你是一个命名实体识别专家，用户输入自然语言，你从中提取出命名实体并将结果以json的形式返回，在返回结果时，我会保持准确性和简洁性，同时遵循用户指定的json格式：```json {json_example}```，
     如果用户没有指定num和time则num=10，time="* 9 * * *"，注意time是linux中的crontab类型。
     比如
     1. 用户输入“帮我查询最近GPT相关的新闻最近10条，每天晚上6点半发给我”，则输出 ```json {json_text1}```；
@@ -60,7 +58,7 @@ class CrawlOSSRanking(Action):
         res_json = json.loads(res)
         return [] if not res_json["words"] else res_json
    
-   def parse_code(self, rsp):
+    def parse_code(self, rsp):
         pattern = r'```json(.*)```'
         match = re.search(pattern, rsp, re.DOTALL)
         code_text = match.group(1) if match else rsp
@@ -69,27 +67,13 @@ class CrawlOSSRanking(Action):
         code_text = code_text.replace('\'', '')
         return code_text
 
-
-# async def nora_keyword(word='台湾选举', num=10):
-#         url = f"https://api.tophubdata.com/search?q={word}"
-#         async with aiohttp.ClientSession() as client:
-#             headers = {"Authorization": tophub_today_token}
-#             async with client.get(url, headers=headers) as response:
-#                response.raise_for_status()
-#                resp = await response.json()
-#         data = resp["data"]["items"][:num]
-#         for i, item in enumerate(data):
-#             data[i]["time"] = datetime.datetime.utcfromtimestamp(item['time']).strftime('%Y-%m-%d %H:%M:%S')
-#         print(data)
-#         return data
-
-async def context2markdown(data: list = []):
-    def format_to_markdown(item):
-        return f"""<h3> <a href="{item['url']}" target="_blank">{item['title']}</a></h3>
-    <p>{item['description']}</p>
-    <p>{item['extra']}</p>
-    <p>{item['time']}</p>"""
-    return ''.join(format_to_markdown(item) for item in data)
+    def context2markdown(self, data: list = []):
+        def format_to_markdown(item):
+            return f"""<h3> <a href="{item['url']}" target="_blank">{item['title']}</a></h3>
+        <p>{item['description']}</p>
+        <p>{item['extra']}</p>
+        <p>{item['time']}</p>"""
+        return ''.join(format_to_markdown(item) for item in data)
 
 class OSSKeyword(Role):
     topic: str = "OSSKeyword"

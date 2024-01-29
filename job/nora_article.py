@@ -13,6 +13,10 @@ from typing import Dict
 from metagpt.actions import Action
 from metagpt.prompts.tutorial_assistant import DIRECTORY_PROMPT, CONTENT_PROMPT
 from metagpt.utils.common import OutputParser
+from metagpt.utils.common import (
+    role_raise_decorator,
+)
+from metagpt.actions.add_requirement import UserRequirement
 
 class WriteDirectory(Action):
     """Action class for writing tutorial directories.
@@ -189,13 +193,16 @@ class TutorialAssistant(Role):
             self.topic = msg.content
             resp = await todo.run(topic=self.topic)
             # logger.info(resp)
-            return await self._handle_directory(resp)
-        resp = await todo.run(topic=self.topic)
-        # logger.info(resp)
-        if self.total_content != "":
-            self.total_content += "\n\n\n"
-        self.total_content += resp
-        return Message(content=resp, role=self.profile)
+            await self._handle_directory(resp)
+            return Message(content="")
+            # return await self._handle_directory(resp)
+        else:
+            resp = await todo.run(topic=self.topic)
+            # logger.info(resp)
+            if self.total_content != "":
+                self.total_content += "\n\n\n"
+            self.total_content += resp
+            return Message(content=resp, role=self.profile)
 
     async def _react(self) -> Message:
         """Execute the assistant's think and actions.
@@ -207,21 +214,51 @@ class TutorialAssistant(Role):
             await self._think()
             if self.rc.todo is None:
                 break
-            msg = await self._act()
-        root_path = TUTORIAL_PATH / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        await File.write(root_path, f"{self.main_title}.md", self.total_content.encode('utf-8'))
-        return msg
 
+            msg = await self._act()
+            if msg:
+                yield msg.content
+
+        root_path = TUTORIAL_PATH / datetime.now().strftime("%Y%m%d")
+        await File.write(root_path, f"{self.main_title}.md", self.total_content.encode('utf-8'))
+
+    async def react(self) -> Message:
+        from metagpt.roles.role import RoleReactMode
+        if self.rc.react_mode == RoleReactMode.REACT:
+            rsp = self._react()
+        elif self.rc.react_mode == RoleReactMode.BY_ORDER:
+            rsp = await self._act_by_order()
+        elif self.rc.react_mode == RoleReactMode.PLAN_AND_ACT:
+            rsp = await self._plan_and_act()
+        self._set_state(state=-1)  # current reaction is complete, reset state to -1 and todo back to None
+        yield rsp
+
+    async def run(self, with_message=None):
+        """Observe, and think and act based on the results of the observation"""
+        if with_message:
+            msg = Message(content=with_message)
+            self.put_message(msg)
+
+        if not await self._observe():
+            # If there is no new information, suspend and wait
+            logger.warning(f"{self._setting}: no news. waiting.")
+            yield
+
+        async for msg in self.react():
+            async for item in msg:
+                yield item
+
+        self.rc.todo = None
+        self.publish_message(self.total_content)
+    
 async def run(msg: str = ""):
-    msg = "给我写一份中国生育率报告"
+    msg = "给我写一份mongodb教程"
     logger.info(f"input: {msg}")
     role = TutorialAssistant()
-    # result = await role.run(msg)
-    result = asyncio.run(role.run(msg))
-    # logger.info(result)
-    logger.info(f"finish!")
-    yield result
+    result = role.run(msg)
+    async for msg in result:
+        print(msg)
 
 if __name__ == "__main__":
-    run()
+    result = asyncio.run(run())
 

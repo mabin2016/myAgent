@@ -481,7 +481,7 @@ class Role(SerializationMixin, is_polymorphic_base=True):
             # If there is no new information, suspend and wait
             logger.debug(f"{self._setting}: no news. waiting.")
             return
-
+        
         rsp = await self.react()
 
         # Reset the next action to be taken.

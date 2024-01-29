@@ -55,7 +55,7 @@ EXAMPLE_PATH = METAGPT_ROOT / "examples"
 DATA_PATH = METAGPT_ROOT / "data"
 TEST_DATA_PATH = METAGPT_ROOT / "tests/data"
 RESEARCH_PATH = DATA_PATH / "research"
-TUTORIAL_PATH = DATA_PATH / "tutorial_docx"
+TUTORIAL_PATH = DATA_PATH / "files"
 INVOICE_OCR_TABLE_PATH = DATA_PATH / "invoice_table"
 
 UT_PATH = DATA_PATH / "ut"
