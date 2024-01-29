@@ -57,7 +57,7 @@ async def generate_document(msg: str = ""):
         yield f"""下载地址：http://119.23.242.207/files/{datetime.now().strftime("%Y%m%d")}\r\n"""
         async for item in result:
             yield item
-        yield f"""生成结束，请到http://119.23.242.207/files/{datetime.now().strftime("%Y%m%d")}下载"""
+        yield f"""生成结束，请查看 http://119.23.242.207/files/{datetime.now().strftime("%Y%m%d")}"""
         
     return StreamingResponse(generate(), media_type="text/event-stream")
 

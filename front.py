@@ -12,6 +12,7 @@ def send_request(choice, input_text):
         action = "nora_oss"
     elif choice == "出行助手":
         action = "nora_travel"
+
     url = "http://0.0.0.0:8000/"
     url = f"{url}{action}?msg={input_text}"
     response = requests.get(url, stream=True)
@@ -21,9 +22,6 @@ def send_request(choice, input_text):
                 st.write(line.decode('utf-8'))
     else:
         st.write("请求失败，请联系管理员")
-
-def response_function(choice, input_text):
-    return send_request(choice, input_text)
 
 def main():
     # 添加选择器和文本输入框
@@ -46,7 +44,7 @@ def main():
 
     if st.button("提交"):
         with st.spinner("处理中，请不要重复点击提交按钮..."):
-            response_function(choice, input_text)
+            send_request(choice, input_text)
 
 if __name__ == "__main__":
     main()
