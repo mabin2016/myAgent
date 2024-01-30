@@ -80,6 +80,11 @@ def get_cron(mins_later: int = 1):
     cron_expression = f"{minute} {hour} {day} {month} {day_of_week}"
     return cron_expression
 
+def generate_dates(start_date, days):
+    date_list = []
+    for i in range(days):
+        date_list.append((start_date + timedelta(days=i)).strftime('%Y-%m-%d'))
+    return date_list
 
 if __name__ == "__main__":
     # res = get_cron()

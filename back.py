@@ -11,8 +11,9 @@ from typing import (
 )
 
 from job import nora_oss as _nora_oss
-from job.nora_article import TutorialAssistant
 from job import nora_keyword as _nora_keyword
+from job.nora_article import TutorialAssistant
+from job.nora_travel import Traveler
 
 
 # from job.oss_action_node import memory
@@ -73,7 +74,12 @@ async def nora_oss(msg: str = ""):
 
 @app.get("/nora_travel")
 async def nora_travel(msg: str = ""):
-    return "旅游胜地介绍接口"
+    async def generate():
+        role = Traveler()
+        result = role.run(msg)
+        async for item in result:
+            yield item
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 

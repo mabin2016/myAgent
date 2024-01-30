@@ -13,9 +13,13 @@ def send_request(choice, input_text):
     elif choice == "出行助手":
         action = "nora_travel"
 
-    url = "http://0.0.0.0:8000/"
-    url = f"{url}{action}?msg={input_text}"
-    response = requests.get(url, stream=True)
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    url = f"http://localhost:8000/{action}?msg={input_text}"
+    print(url)
+    response = requests.get(url, headers=headers, stream=True)
     if response.status_code == 200:
         for line in response.iter_lines():
             if line:

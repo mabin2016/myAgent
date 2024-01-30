@@ -1,6 +1,12 @@
 from datetime import datetime
 from typing import Dict
 import asyncio
+
+import os
+import sys
+root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, root)
+
 from metagpt.actions.write_tutorial import WriteDirectory, WriteContent
 from metagpt.const import TUTORIAL_PATH
 from metagpt.logs import logger
@@ -257,7 +263,7 @@ async def run(msg: str = ""):
     role = TutorialAssistant()
     result = role.run(msg)
     async for msg in result:
-        print(msg)
+        print(f"msg:{msg}")
 
 if __name__ == "__main__":
     result = asyncio.run(run())
