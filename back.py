@@ -55,10 +55,10 @@ async def generate_document(msg: str = ""):
     async def generate():
         role = TutorialAssistant()
         result = role.run(msg)
-        yield f"""下载地址：http://119.23.242.207/files/{datetime.now().strftime("%Y%m%d")}\r\n"""
+        yield f"""下载地址：http://119.23.242.207/files\r\n"""
         async for item in result:
             yield item
-        yield f"""生成结束，请查看 http://119.23.242.207/files/{datetime.now().strftime("%Y%m%d")}"""
+        yield f"""生成结束，请查看 http://119.23.242.207/files"""
         
     return StreamingResponse(generate(), media_type="text/event-stream")
 
