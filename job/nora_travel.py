@@ -148,7 +148,7 @@ print(tomorrow.strftime('%Y-%m-%d'))
 
 
 PROMPT_SUMMARY = """
-你是一名出行达人，也是一名NLP专家，请给我总结以下文本，生成一份通俗易懂的自然语言，如果文本为空则不需要总结。
+你是一名出行达人，也是一名NLP专家，请给我总结以下文本和用户的输入内容，生成一份通俗易懂的自然语言，如果文本为空则不需要总结。
 
 ## 天气类
 ### 给定文本
@@ -157,7 +157,6 @@ PROMPT_SUMMARY = """
 ```
 #### 要求
 - 根据给定文本总结天气情况并给出建议
-- 不要输出额外信息
 
 ## 周边娱乐餐饮景点类
 ### 给定文本
@@ -165,20 +164,21 @@ PROMPT_SUMMARY = """
 {{resp_keywords}}
 ```
 #### 要求
-- 给定文本有多少段就给出多少段建议，每段建议遵循下面规则
-	- 给定文本中cost表示人均消费水平，rating表示评分，请根据这两个字段给出性价比最高的5个，然后再给出建议，并附上地址、电话等信息
-	
+- 给定文本有多少段就给出多少段建议，每段建议遵循下面规则：给定文本中cost表示人均消费水平，rating表示评分，请根据这两个字段给出每段文本中性价比最高的8个，然后再给出建议，并附上地址、电话等信息
+
 ## 火车票类
 ### 给定的火车票信息
 ```json
 {{resp_ticket}}
 ```
-#### 要求
-- 根据给定的火车票信息列出最具性价比的5条信息，并做出总结和建议
+#### 要求9
+- 根据给定的火车票信息列出最具性价比的5条信息，并做出总结和建议，如果给定的信息为空则不输出内容
 
-
-## 规范
-- 根据以上总结归纳成一段自然语言输出，语气要活泼温柔，善解人意。
+## 用户输入的内容是
+```text
+{{query}}
+```
+请结合以上输出给出建议。
 """
 
 class GetTransInfo(Action):
@@ -239,8 +239,8 @@ class GetTransInfo(Action):
         # resp = f"""{resp_weather}\r\n{resp_keywords}\r\n{resp_ticket}"""
         prompt = PROMPT_SUMMARY.replace("{{resp_weather}}", str(resp_weather))\
             .replace("{{resp_keywords}}", str(resp_keywords))\
-            .replace("{{resp_ticket}}", str(resp_ticket))
-            # .replace("{{dates}}", str(dates))
+            .replace("{{resp_ticket}}", str(resp_ticket))\
+            .replace("{{query}}", msgs[0].content)
         content = await self._aask(prompt)
         return Message(content=content)
     
@@ -370,7 +370,8 @@ if __name__ == "__main__":
     # ts = GetTransInfo()
     # res = asyncio.run(ts.run(content))
 
-    query = "我想明天去百色，帮我看下还有哪趟高铁有票，并且看下百色的天气如何，有哪些好玩的"
+    # query = "我想明天去百色，帮我看下还有哪趟高铁有票，并且看下百色的天气如何，有哪些好玩的"
+    query = "我想去新疆看雪，吃烤肉串，不知道现在那边有没有下雪，现在抢票难吗"
     # query = "百色有哪些好玩的"
     # ts = getEntity()
     # res = asyncio.run(ts.run(query=query))

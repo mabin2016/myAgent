@@ -1,24 +1,13 @@
-from datetime import datetime, timedelta
-from croniter import croniter
-from typing import Optional
-
-import aiohttp
-from pydantic import BaseModel, Field
-
-
-    
+from datetime import datetime
+import urllib
 import requests
-
+import json
 import os
 import sys
-
 root = os.path.abspath(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 sys.path.insert(0, root)
 
-
 from metagpt.config import CONFIG
-# from metagpt.logs import logger
-# from metagpt.schema import Message
 
 
 class AmapGeocoding:
@@ -190,18 +179,18 @@ class AmapPathPlanner:
     """
     def __init__(self):
         self.api_key = CONFIG.AMAP_KEY
-        self.base_url = "https://restapi.amap.com/v3/direction"
+        self.base_url = "https://restapi.amap.com/v5/direction"
 
-    def _build_url(self, mode, origin, destination, city=None, extensions=None):
+    def _call_api(self, mode, origin, destination, extensions=None):
         """
-        构建路径规划API的URL
+        调用路径规划API
 
-        :param mode: 路径规划模式，如"driving", "walking", "riding", "bus"
-        :param origin: 起点坐标，格式为"纬度,经度"
-        :param destination: 终点坐标，格式为"纬度,经度"
-        :param city: 城市名称，用于指定起点和终点所在的城市，可选
-        :param extensions: 返回结果中包含的额外信息，如路线规划策略等，可选
-        :return: 完整的API URL
+        :param mode: 路径规划模式
+        :param origin: 起点坐标
+        :param destination: 终点坐标
+        :param city: 城市名称，可选
+        :param extensions: 返回结果中包含的额外信息，可选
+        :return: API返回的结果
         """
         params = {
             "key": self.api_key,
@@ -210,10 +199,12 @@ class AmapPathPlanner:
             "extensions": extensions or "all",
             "output": "json"
         }
-        if city:
-            params["city"] = city
         url = f"{self.base_url}/{mode}"
-        return url + "?" + requests.utils.urlencode(params)
+        response = requests.post(url, json=params)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return None
 
     def driving(self, origin, destination, city=None, extensions=None):
         """
@@ -262,24 +253,6 @@ class AmapPathPlanner:
         :return: 高德地图公交路径规划结果
         """
         return self._call_api("bus", origin, destination, city, extensions)
-
-    def _call_api(self, mode, origin, destination, city, extensions):
-        """
-        调用路径规划API
-
-        :param mode: 路径规划模式
-        :param origin: 起点坐标
-        :param destination: 终点坐标
-        :param city: 城市名称，可选
-        :param extensions: 返回结果中包含的额外信息，可选
-        :return: API返回的结果
-        """
-        url = self._build_url(mode, origin, destination, city, extensions)
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            return None
         
 
 class TrainTicketService:
@@ -320,19 +293,19 @@ if __name__ == "__main__":
 
     city = "百色"
     # 使用示例
-    service = TrainTicketService()
-    departure_date = "2024-01-30"
-    departure_city = "北京"
-    arrival_city = "上海"
+    # service = TrainTicketService()
+    # departure_date = "2024-01-30"
+    # departure_city = "北京"
+    # arrival_city = "上海"
 
-    # 获取火车票信息
-    tickets_info = service.get_tickets(arrival_city, departure_city, departure_date)
-    if tickets_info:
-        print(tickets_info)
-    else:
-        print("获取火车票信息失败。")
+    # # 获取火车票信息
+    # tickets_info = service.get_tickets(arrival_city, departure_city, departure_date)
+    # if tickets_info:
+    #     print(tickets_info)
+    # else:
+    #     print("获取火车票信息失败。")
     
-    exit()
+    # exit()
 
 
     # 查询北京的交通路况
@@ -341,24 +314,26 @@ if __name__ == "__main__":
 
         
     # 使用示例
-    # planner = AmapPathPlanner(api_key)
-
+    planner = AmapPathPlanner()
     # # # 起点和终点坐标
-    # origin = "39.916979,116.397473"  # 北京市天安门广场
-    # destination = "39.989629,116.307509"  # 北京市颐和园
+    origin = "39.916979,116.397473"  # 北京市天安门广场
+    destination = "39.989629,116.307509"  # 北京市颐和园
 
     # # # 进行路径规划
     # driving_result = planner.driving(origin, destination)
     # walking_result = planner.walking(origin, destination)
     # riding_result = planner.riding(origin, destination)
     # bus_result = planner.bus(origin, destination)
+    driving_result = planner._call_api("driving", origin, destination)
 
-    # # # 输出结果
+    # # 输出结果
     # for result in [driving_result, walking_result, riding_result, bus_result]:
-    #     if result:
-    #         print(f"{result['route'][0]['paths'][0]['steps'][0]['instruction']}")
-    #     else:
-    #         print("路径规划失败")
+    for result in [driving_result]:
+        if result:
+            print(f"{result['route'][0]['paths'][0]['steps'][0]['instruction']}")
+        else:
+            print("路径规划失败")
+
 
     # # 使用示例
     # geocoding = AmapGeocoding()
@@ -376,13 +351,13 @@ if __name__ == "__main__":
 
     
     # 使用示例
-    weather = AmapWeather()
+    # weather = AmapWeather()
 
-    # # 查询北京的天气信息
-    result = weather.get_weather(city)
-    print(result)
-    if result:
-        print(result)
+    # # # 查询北京的天气信息
+    # result = weather.get_weather(city)
+    # print(result)
+    # if result:
+    #     print(result)
 
     
     # 使用示例
