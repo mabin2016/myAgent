@@ -225,8 +225,8 @@ class TutorialAssistant(Role):
             if msg:
                 yield msg.content
 
-        root_path = TUTORIAL_PATH / datetime.now().strftime("%Y%m%d")
-        await File.write(root_path, f"{self.main_title}.md", self.total_content.encode('utf-8'))
+        # root_path = TUTORIAL_PATH / datetime.now().strftime("%Y%m%d")
+        await File.write(TUTORIAL_PATH, f"{self.main_title}.md", self.total_content.encode('utf-8'))
 
     async def react(self) -> Message:
         from metagpt.roles.role import RoleReactMode
