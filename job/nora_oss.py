@@ -8,6 +8,12 @@ import re
 from pydantic import BaseModel, Field
 
 from aiocron import crontab
+
+import os
+import sys
+root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, root)
+
 from metagpt.team import Team
 from metagpt.actions import UserRequirement
 from metagpt.actions.action import Action
@@ -88,50 +94,6 @@ PARSE_SUB_REQUIREMENTS_NODE = ActionNode.from_children("ParseSubscriptionReq", N
 PARSE_SUB_REQUIREMENT_TEMPLATE = """
 ### User Requirement
 {requirements}
-"""
-
-SUB_ACTION_TEMPLATE = """
-## Requirements
-Answer the question based on the provided context {process}. If the question cannot be answered, please summarize the context.
-
-## context
-{data}"
-"""
-
-summary_json_demo = "[{'financing_time': '2024-01-24', 'project_name': '环力智能', 'industry': '智能硬件', 'financing_round': 'A轮', 'financing_amount': '数亿人民币', 'investor': '朝希资本', 'details': '详情'}, {'financing_time': '2024-01-24', 'project_name': '知策科技', 'industry': '企业服务\xa0前沿技术', 'financing_round': '种子轮', 'financing_amount': '数千万人民币', 'investor': '顺为资本', 'details': '详情'}]"
-
-SUMMARY_HTML_TEMPLATE = """
-## Requirements
-Show result based on the provided context {data} strictly according to the example's format bellow. If you can not finish the task, output the input data.
-
-## Example
-
-### Input
-```json
-[{'financing_time': '2024-01-24', 'project_name': '环力智能', 'industry': '智能硬件', 'financing_round': 'A轮', 'financing_amount': '数亿人民币', 'investor': '朝希资本', 'details': '详情'}, {'financing_time': '2024-01-24', 'project_name': '知策科技', 'industry': '企业服务\xa0前沿技术', 'financing_round': '种子轮', 'financing_amount': '数千万人民币', 'investor': '顺为资本', 'details': '详情'}]
-```
-
-### Output
-```html
-<div>
-	<h3><b>project_name</b>环力智能</h3>
-	<p><b>industry</b>智能硬件</p>
-	<p><b>financing_round</b>A轮</p>
-	<p><b>financing_amount</b>数亿人民币</p>
-	<p><b>investor</b>朝希资本</p>
-	<p><b>financing_time</b>2024-01-24</p>
-	<p><b>details</b>详情</p>
-</div>
-<div>
-	<h3><b>project_name</b>知策科技</h3>
-	<p><b>industry</b>企业服务\xa0前沿技术</p>
-	<p><b>financing_round</b>种子轮</p>
-	<p><b>financing_amount</b>数千万人民币</p>
-	<p><b>investor</b>顺为资本</p>
-	<p><b>financing_time</b>2024-01-24</p>
-	<p><b>details</b>详情</p>
-</div>					
-```
 """
 
 PROMPT_TEMPLATE = """Please complete the web page crawler parse function to achieve the User Requirement. The parse \
@@ -354,10 +316,7 @@ class RunSubscription(Action):
                     for url, page in zip(urls, pages):
                         data.append(getattr(modules[url], "parse")(page.soup))
 
-                    # _data = [v.__dict__ for v in data[0][:2]]
                     return parse_json2html(data[0])
-                    # content = await self.llm.aask(SUMMARY_HTML_TEMPLATE.format(data=_data, summary_json_demo=summary_json_demo))
-                    # return parse_code(content)
                 except Exception as e:
                     print(traceback.format_exc())
                     traceback.print_exc()
@@ -415,7 +374,7 @@ class CrawlerEngineer(Role):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self._init_actions([WriteCrawlerCode])
-        self._watch([ParseSubRequirement])
+        self._watch([ParseSubRequirement]) # 意思是WriteCrawlerCode跟在ParseSubRequirement执行
 
 
 # 定义订阅助手角色
@@ -433,15 +392,18 @@ class SubscriptionAssistant(Role):
         # self._init_actions([ParseSubRequirement, RunSubscription])
         self._init_actions([ParseSubRequirement, SendWein])
         
+        # 这里添加watch后_observe()会观察到并记录到self.rc.watch，run()的时候会回判断_observe()返回值大于0则继续执行
         self._watch([UserRequirement, WriteCrawlerCode])
 
     async def _think(self) -> bool:
         cause_by = self.rc.history[-1].cause_by
+        # 这里state设置完之后的运行流程是 UserRequirement -> UserRequirement -> WriteCrawlerCode(因为CrawlerEngineer这个类watch了ParseSubRequirement：self._watch([ParseSubRequirement])) -> SendWein
         if cause_by == any_to_str(UserRequirement):
             state = 0
         elif cause_by == any_to_str(WriteCrawlerCode):
             state = 1
 
+        # 当前的statte等于修改后的state，说明已经执行过这个todo，不需要再执行了
         if self.rc.state == state:
             self.rc.todo = None
             return False
@@ -465,8 +427,10 @@ async def run(query: str = ""):
     logger.info(f"finish!")
 
 if __name__ == "__main__":
-    import fire
-    fire.Fire(run)
-    # asyncio.run(oss())
+    result = asyncio.run(run())
+    # from metagpt.schema import Message
+    # asyncio.run(ParseSubRequirement().run([Message(
+    #     "从36kr创投平台https://pitchhub.36kr.com/financing-flash 爬取所有初创企业融资的信息，获取标题，链接， 时间，总结今天的融资新闻，然后在晚上七点半送给我"
+    # )]))
 
     

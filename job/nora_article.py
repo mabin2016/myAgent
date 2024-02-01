@@ -22,7 +22,7 @@ from metagpt.utils.common import OutputParser
 from metagpt.utils.common import (
     role_raise_decorator,
 )
-from metagpt.actions.add_requirement import UserRequirement
+from metagpt.actions import UserRequirement
 
 class WriteDirectory(Action):
     """Action class for writing tutorial directories.

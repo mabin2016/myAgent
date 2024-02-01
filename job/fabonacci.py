@@ -1,6 +1,11 @@
 import asyncio
 import re
 
+import os
+import sys
+root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
+sys.path.insert(0, root)
+
 from metagpt.actions.action import Action, ActionNode
 from metagpt.logs import logger
 from metagpt.roles import Role
