@@ -35,9 +35,9 @@ def main():
     2. 关键词订阅(需要关注公众号)：
         帮我订阅openai的新闻并发送给我
     3. 网站列表订阅(需要关注公众号)：
-        从https://www.jsrank.cn/real/66ad5335a7d33dfb0bcc40dc8f892960.html爬取列表信息，然后发给我
+        从https://pitchhub.36kr.com/investevent爬取信息，获取融资时间，项目名称，所属行业，融资轮次，融资金额，投资方，详情链接字段，然后发给我
     4. 出行助手：
-        我想明天去北京，帮我看下还有哪趟高铁有票，并且看下百色的天气如何，有哪些好玩的
+        我想明天去上海，帮我看下还有哪趟高铁有票，并且看下上海的天气如何，有哪些好玩的
     """
     st.text(text_demo)
     st.text("请扫码关注公众号，以获取订阅信息")
@@ -47,8 +47,9 @@ def main():
     input_text = st.text_input("请输入文本:", key="input_text")
 
     if st.button("提交"):
-        with st.spinner("处理中，需要1-2分钟，请不要重复点击提交按钮..."):
+        with st.spinner("处理中，请不要重复点击提交按钮..."):
             send_request(choice, input_text)
 
 if __name__ == "__main__":
     main()
+

@@ -252,7 +252,7 @@ class GetTransInfo(Action):
             tickets_info = service.get_tickets(dest_city, source_city, _date)
             if tickets_info and tickets_info["data"]["count"] > 0:
                 break
-        return str(tickets_info["data"]["list"])
+        return str(tickets_info["data"]["list"]) if tickets_info else ""
     
     async def resp_ticket_summary(self, tickets_info: str, dest_city: str, source_city: str, some_date: str):
         if not tickets_info:
