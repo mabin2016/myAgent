@@ -13,9 +13,9 @@ from metagpt.roles import Role
 from metagpt.logs import logger
 from metagpt.schema import Message
 from metagpt.config import CONFIG
-from job.utils.util import wxpusher_callback
+#from job.utils.util import wxpusher_callback
 
-weixin_uids: List[str] = []
+#weixin_uids: List[str] = []
 
 user_session_id = uuid4().hex
 memory = SQLChatMessageHistory(session_id=user_session_id, connection_string="sqlite:///sqlite.db")

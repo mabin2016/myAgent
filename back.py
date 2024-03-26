@@ -10,7 +10,7 @@ from typing import (
     Any,
 )
 
-from job import nora_oss as _nora_oss
+#from job import nora_oss as _nora_oss
 from job import nora_keyword as _nora_keyword
 from job.nora_article import TutorialAssistant
 from job.nora_travel import Traveler
@@ -23,6 +23,7 @@ app.global_uid = None
 app.qrcode = None
 
 from fastapi import FastAPI
+
 
 @app.get("/nora_article")
 async def generate_document(msg: str = "", mail: str = ""):
@@ -42,10 +43,10 @@ async def nora_keyword(msg: str = "", mail: str = ""):
     asyncio.gather(_nora_keyword.run(msg, mail))
     return "已执行，需要几分钟，稍后请查收您的邮件"
 
-@app.get("/nora_oss")
-async def nora_oss(msg: str = "", mail: str = ""):
-    asyncio.gather(_nora_oss.run(msg, mail))
-    return "已执行，需要几分钟，稍后请查收您的邮件"
+#@app.get("/nora_oss")
+#async def nora_oss(msg: str = "", mail: str = ""):
+#    asyncio.gather(_nora_oss.run(msg, mail))
+#    return "已执行，需要几分钟，稍后请查收您的邮件"
 
 @app.get("/nora_travel")
 async def nora_travel(msg: str = "", mail: str = ""):

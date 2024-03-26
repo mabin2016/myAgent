@@ -6,9 +6,9 @@ from metagpt.config import CONFIG
 from metagpt.logs import logger
 
 class EmailSender:
-    def __init__(self):
-        self.smtp_server = "smtp.126.com"
-        self.port = 25
+    def __init__(self, smtp_server=CONFIG.SMTP_SERVER, port=CONFIG.SMTP_PORT):
+        self.smtp_server = smtp_server
+        self.port = port
         self.sender_email = CONFIG.SEND_EMAIL
         self.sender_password = CONFIG.EMAIL_PASSWORD
 
@@ -25,10 +25,11 @@ class EmailSender:
         else:
             msg.attach(MIMEText(body, "plain"))
         # 设置SMTP服务器并发送邮件
+        print(self.sender_email, self.sender_password)
         try:
             with smtplib.SMTP(self.smtp_server, self.port) as server:
                 server.login(self.sender_email, self.sender_password)
                 server.sendmail(self.sender_email, recipient, msg.as_string())
-            logger.info(f"Email sent successfully! recipient: {recipient}， subject: {subject}， body: {body}")
+            logger.info(f"Email sent successfully! send: {self.sender_email} recipient: {recipient}， subject: {subject}， body: {body}")
         except Exception as e:
-            logger.error(f"Failed to send email: {e} recipient: {recipient}， subject: {subject}， body: {body}")
+            logger.error(f"Failed to send email: {e} send: {self.sender_email}  recipient: {recipient}， subject: {subject}， body: {body}")

@@ -54,7 +54,7 @@ def main():
     # st.text("请扫码关注公众号，以获取订阅信息")
     # st.image([CONFIG.WEINXINPUSHER_QRCODE_IMG])
 
-    choice = st.selectbox(options=["技术文档生成", "关键词订阅", "出行助手"], label="请选择", key="choice")
+    choice = st.selectbox(options=["技术文档生成", "出行助手", "关键词订阅"], label="请选择", key="choice")
     input_mail = st.text_input("请输入邮箱:", key="input_mail")
     input_text = st.text_input("请输入文本:", key="input_text")
 
