@@ -1,19 +1,25 @@
 import asyncio
+from uuid import uuid4
 from typing import List
-from exa_py import Exa
+
 import aiohttp
-from datetime import datetime
+import datetime
 import re
 import json
+from langchain_community.chat_message_histories import SQLChatMessageHistory
 
 from metagpt.actions.action import Action
 from metagpt.roles import Role
 from metagpt.logs import logger
-from job.utils.util import wxpusher_callback
 from metagpt.schema import Message
 from metagpt.config import CONFIG
+from job.utils.util import wxpusher_callback
 
 weixin_uids: List[str] = []
+
+user_session_id = uuid4().hex
+memory = SQLChatMessageHistory(session_id=user_session_id, connection_string="sqlite:///sqlite.db")
+memory.clear()
 
 class CrawlOSSRanking(Action):
    
@@ -21,16 +27,21 @@ class CrawlOSSRanking(Action):
 
     async def run(self, query: str = ""):
         entitys = await self.detect_entity(query)
-        # 暂时只取一个
         word = entitys["words"][0]
-        data = await self.crawl_exa_api(word, entitys["num"])
-        if not data:
-            data = await self.crawl_toutiao_api(word, entitys["num"])
-        res = self.context2markdown(data)
-        await wxpusher_callback(res, summary=f"您订阅的关键词是: {word}")
-        return Message(res)
+        data = await self.crawl_api(word, entitys["num"])
+        msg = self.context2markdown(data)
+        # await wxpusher_callback(msg, summary=f"您订阅的关键词是: {word}")
+
+        from job.utils.mail import EmailSender
+        receipt_mail = memory.messages[-1].content
+        print(f"receipt_mail {receipt_mail}")
+        mail = EmailSender()
+        print(mail, msg)
+        mail.send_email(recipient=receipt_mail, subject=f"您订阅的关键词是: {word}", body=msg)
         
-    async def crawl_toutiao_api(self, word: str = "", num: int = 10):
+        return Message(msg)
+        
+    async def crawl_api(self, word: str = "", num: int = 10):
         url = f"https://api.tophubdata.com/search?q={word}"
         async with aiohttp.ClientSession() as client:
             headers = {"Authorization": CONFIG.TOPHUB_TODAY_TOKEN}
@@ -39,26 +50,7 @@ class CrawlOSSRanking(Action):
                 resp = await response.json()
         data = resp["data"]["items"][:num]
         for i, item in enumerate(data):
-            data[i]["time"] = datetime.utcfromtimestamp(item['time']).strftime('%Y-%m-%d %H:%M:%S')
-        return data
-    
-    async def crawl_exa_api(self, word: str = "", num: int = 10):
-        try:
-            response = Exa(CONFIG.EXA_TOKEN).search(
-                word,
-                num_results=num,
-                use_autoprompt=True,
-                type="keyword",
-            )
-            data = response.results
-            for i, item in enumerate(data):
-                data[i]["time"] = datetime.strptime(item.published_date, "%Y-%m-%dT%H:%M:%S.%fZ")
-                data[i]["description"] = item.text
-                data[i]["url"] = item.url
-                data[i]["title"] = item.title
-        except Exception as e:
-            logger.error(f"exa search error {e}")
-            return False
+            data[i]["time"] = datetime.datetime.utcfromtimestamp(item['time']).strftime('%Y-%m-%d %H:%M:%S')
         return data
    
     async def detect_entity(self, query):
@@ -107,8 +99,9 @@ class OSSKeyword(Role):
         self._init_actions([CrawlOSSRanking])
 
 
-async def run(msg: str = "帮我订阅openai和台湾选举的新闻，每天晚上8点发给我"):
+async def run(msg: str = "帮我订阅openai和台湾选举的新闻，每天晚上8点发给我", mail: str = ""):
     logger.info(msg)
+    memory.add_user_message(mail)
     role = OSSKeyword()
     res = await role.run(msg)
     logger.info(f"finish!")
@@ -120,5 +113,4 @@ if __name__ == "__main__":
     print(res)
 
     
-
 

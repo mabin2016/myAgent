@@ -5,8 +5,6 @@ from uuid import uuid4
 import ast
 import traceback
 import re
-from pydantic import BaseModel, Field
-
 from aiocron import crontab
 
 import os
@@ -28,11 +26,14 @@ from pytz import BaseTzInfo
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 from job.utils.util import wxpusher_callback
 
+
 from job.utils.util import get_cron
 
 user_session_id = uuid4().hex
 memory = SQLChatMessageHistory(session_id=user_session_id, connection_string="sqlite:///sqlite.db")
 memory.clear()
+
+global global_mail
 
 # 先写NODES
 LANGUAGE = ActionNode(
@@ -263,66 +264,69 @@ class ParseSubRequirement(Action):
     
 
 # 运行订阅智能体的Action
-class RunSubscription(Action):
-    async def run(self, msgs):
-        from metagpt.roles.role import Role
-        from metagpt.subscription import SubscriptionRunner
+# class RunSubscription(Action):
+#     async def run(self, msgs):
+#         from metagpt.roles.role import Role
+#         from metagpt.subscription import SubscriptionRunner
 
-        code = msgs[-1].content
-        print(f"code {code}")
-        req = msgs[-2].instruct_content.dict()
-        urls = req["Crawler URL List"]
-        process = req["Crawl Post Processing"]
-        spec = req["Cron Expression"]
-        SubAction = self.create_sub_action_cls(urls, code, process)
-        SubRole = type("SubRole", (Role,), {})
-        role = SubRole()
-        role.init_actions([SubAction])
-        runner = SubscriptionRunner()
+#         code = msgs[-1].content
+#         print(f"code {code}")
+#         req = msgs[-2].instruct_content.dict()
+#         urls = req["Crawler URL List"]
+#         process = req["Crawl Post Processing"]
+#         spec = req["Cron Expression"]
+#         SubAction = self.create_sub_action_cls(urls, code, process)
+#         SubRole = type("SubRole", (Role,), {})
+#         role = SubRole()
+#         role.init_actions([SubAction])
+#         runner = SubscriptionRunner()
 
-        async def callback(msg):
-            from job.utils.util import wxpusher_callback
-            
-            if msg:
-                content = msg.content
-                print(content)
-            else:
-                content = "抓取失败"
+#         async def callback(msg):
+#             if msg:
+#                 content = msg.content
+#                 print(content)
+#             else:
+#                 content = "由于网站过于复杂，抓取失败"
                 
-            user_msg = parse_user_msg(memory.messages[-1].content)
-            user_requirement = ast.literal_eval(user_msg)
-            summary = f"""{user_requirement['Page Content Extraction']}， {user_requirement['Crawl Post Processing']}"""
-            await wxpusher_callback(content, summary=summary)
+#             user_msg = parse_user_msg(memory.messages[-1].content)
+#             user_requirement = ast.literal_eval(user_msg)
+#             summary = f"""{user_requirement['Page Content Extraction']}， {user_requirement['Crawl Post Processing']}"""
+#             # await wxpusher_callback(content, summary=summary)
+
+              # from job.utils.mail import EmailSender
+#             global global_mail
+#             mail = EmailSender()
+#             await mail.send_email(recipient=global_mail, subject=content, body=summary)
             
-        await runner.subscribe(role, CronTrigger(spec), callback)
-        await runner.run()
+#         await runner.subscribe(role, CronTrigger(spec), callback)
+#         await runner.run()
 
-    def create_sub_action_cls(self, urls: list[str], code: str, process: str):
-        modules = {}
-        for url in urls[::-1]:
-            code, current = code.rsplit(f"# {url}", maxsplit=1)
-            name = uuid4().hex
-            module = type(sys)(name)
-            exec(current, module.__dict__)
-            modules[url] = module
+#     def create_sub_action_cls(self, urls: list[str], code: str, process: str):
+#         modules = {}
+#         for url in urls[::-1]:
+#             code, current = code.rsplit(f"# {url}", maxsplit=1)
+#             name = uuid4().hex
+#             module = type(sys)(name)
+#             exec(current, module.__dict__)
+#             modules[url] = module
 
-        class SubAction(Action):
-            async def run(self, *args, **kwargs):
-                pages = await WebBrowserEngine().run(*urls)
-                if len(urls) == 1:
-                    pages = [pages]
-                try:
-                    data = []
-                    for url, page in zip(urls, pages):
-                        data.append(getattr(modules[url], "parse")(page.soup))
+#         class SubAction(Action):
+#             async def run(self, *args, **kwargs):
+#                 pages = await WebBrowserEngine().run(*urls)
+#                 if len(urls) == 1:
+#                     pages = [pages]
+#                 try:
+#                     data = []
+#                     for url, page in zip(urls, pages):
+#                         data.append(getattr(modules[url], "parse")(page.soup))
 
-                    return parse_json2html(data[0])
-                except Exception as e:
-                    print(traceback.format_exc())
-                    traceback.print_exc()
-                    return "爬取失败"
+#                     return parse_json2html(data[0])
+#                 except Exception as e:
+#                     print(traceback.format_exc())
+#                     traceback.print_exc()
+#                     return "爬取失败"
 
-        return SubAction
+#         return SubAction
 
 
 class SendWein(Action):
@@ -356,11 +360,16 @@ class SendWein(Action):
         if not msg:
             msg = "暂无消息"
 
-        logger.info(f"send weixinmsg: {msg}")
+        logger.info(f"send mail: {msg}")
         # user_msg = parse_user_msg(memory.messages[-1].content)
         # user_requirement = ast.literal_eval(user_msg)
+        # await wxpusher_callback(msg, summary=summary)
         summary = f"""爬取的网站地址:{urls[0]}"""
-        await wxpusher_callback(msg, summary=summary)
+        
+        from job.utils.mail import EmailSender
+        mail = EmailSender()
+        
+        await mail.send_email(recipient=global_mail, subject=summary, body=msg)
         return Message()
 
 
@@ -411,19 +420,18 @@ class SubscriptionAssistant(Role):
         return True
 
 
-async def run(query: str = ""):
+async def run(query: str = "", mail: str = ""):
     if not query:
         query = "从https://pitchhub.36kr.com/investevent爬取信息，获取融资时间，项目名称，所属行业，融资轮次，融资金额，投资方，详情链接字段，然后发给我"
     
     logger.info(f"query: {query}")
-
-    # query = "从36kr创投平台https://pitchhub.36kr.com/financing-flash爬取所有初创企业融资的信息，获取标题，链接， 时间，总结今天的融资新闻，然后发送给我"
+    
+    global_mail = mail
     
     team = Team()
     team.hire([SubscriptionAssistant(), CrawlerEngineer()])
     team.run_project(query)
     await team.run()
-    # asyncio.run(team.run())
     logger.info(f"finish!")
 
 if __name__ == "__main__":
