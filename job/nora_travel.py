@@ -195,8 +195,11 @@ class GetTransInfo(Action):
         source_city = content["source_city"]
         dest_city = content["dest_city"]
         keywords = content["keywords"]
-        some_date = content["some_date"] if content["some_date"] else str(datetime.today().date())
-        if dest_city:
+        # some_date = content["some_date"] if content["some_date"] else str(datetime.today().date())
+        if not dest_city:
+            return Message(content="解析失败,目标城市不存在")
+        
+        try:
             resp_weather = ""
             resp_keywords = ""
             if content["has_weather"] == 1:
@@ -229,20 +232,18 @@ class GetTransInfo(Action):
             if source_city and dest_city:
                 dates = generate_dates(datetime.now().date(), 10)
                 resp_ticket = await self.request_resp_ticket_api(source_city, dest_city, dates)
-    
-        # print(resp_weather)
-        # print("\r\n\r\n")
-        # print(resp_keywords)
-        # print("\r\n\r\n")
-        # print(resp_ticket)
-        # print("\r\n\r\n")
-        # resp = f"""{resp_weather}\r\n{resp_keywords}\r\n{resp_ticket}"""
-        prompt = PROMPT_SUMMARY.replace("{{resp_weather}}", str(resp_weather))\
-            .replace("{{resp_keywords}}", str(resp_keywords))\
-            .replace("{{resp_ticket}}", str(resp_ticket))\
-            .replace("{{query}}", msgs[0].content)
-        content = await self._aask(prompt)
-        return Message(content=content)
+        
+            prompt = PROMPT_SUMMARY.replace("{{resp_weather}}", str(resp_weather))\
+                .replace("{{resp_keywords}}", str(resp_keywords))\
+                .replace("{{resp_ticket}}", str(resp_ticket))\
+                .replace("{{query}}", msgs[0].content)
+            res = await self._aask(prompt)
+            
+        except Exception as e:
+            print(f"获取天气失败: {e}")
+            res = "get weather fail"
+
+        return Message(content=res)
     
     async def request_resp_ticket_api(self, source_city: str, dest_city: str, dates: List):
         service = TrainTicketService()

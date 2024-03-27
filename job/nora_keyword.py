@@ -41,7 +41,7 @@ class CrawlOSSRanking(Action):
         
         return Message(msg)
         
-    async def crawl_api(self, word: str = "", num: int = 10):
+    async def crawl_api(self, word: str = "", num: int = 20):
         url = f"https://api.tophubdata.com/search?q={word}"
         async with aiohttp.ClientSession() as client:
             headers = {"Authorization": CONFIG.TOPHUB_TODAY_TOKEN}
